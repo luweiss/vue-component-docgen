@@ -1,0 +1,21 @@
+{
+  "name": "@luweiss/vue-component-docgen",
+  "version": "1.0.0",
+  "description": "Toolbox to generate api documentation for vue components",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "vue",
+    "api-documentation-generation"
+  ],
+  "author": "luweiss",
+  "license": "MIT",
+  "bin": {
+    "component-doc": "./index.js"
+  },
+  "peerDependencies": {
+    "vue-docgen-api": "^4.79.2"
+  }
+}
