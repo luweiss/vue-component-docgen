@@ -1,5 +1,5 @@
 {
-  "name": "@luweiss/vue-component-docgen",
+  "name": "vue-component-docgen",
   "version": "1.0.0",
   "description": "Toolbox to generate api documentation for vue components",
   "main": "index.js",

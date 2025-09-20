@@ -1,7 +1,10 @@
-# 使用说明
+# vue-component-docgen
+
+基于vue-docgen-api编写的生成组件html文档或markdown文档的工具。
+
 ## 安装
 ```shell
-npm install @luweiss/vue-component-docgen
+npm install vue-component-docgen
 ```
 
 ## 必要设置
