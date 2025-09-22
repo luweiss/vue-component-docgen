@@ -4,7 +4,7 @@
 
 ## 安装
 ```shell
-npm install vue-component-docgen
+npm install vue-component-docgen -D
 ```
 
 ## 必要设置
@@ -40,14 +40,22 @@ npm run build:component-doc
 {
     "docType": "md",
     "docName": "我的组件文档",
+    "docDescription": "文档描述",
     "componentsDir": "src/components",
-    "outDir": "dist/component-doc"
+    "outDir": "dist/component-doc",
+    "customContent": {
+        "html": "customDocs/install.html",
+        "md": "customDocs/install.md"
+    }
 }
 ```
 根据需要调整参数，参数说明如下
 ```
 docType: 默认'html'，可选'md'，输出html或markdown
 docName: 文档标题
+docDescription: 文档描述
 componentsDir: 组件目录
 outDir: 文档输出目录
+customContent.html: 存放自定义内容的文件(docType: 'html')，自定义内容将插入到docName下方
+customContent.md: 存放自定义内容的文件(docType: 'md')，自定义内容将插入到docName下方
 ```

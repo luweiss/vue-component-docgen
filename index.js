@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import {parse} from 'vue-docgen-api'
+import { parse } from 'vue-docgen-api'
 import fs from 'fs'
 import fsPromises from 'fs/promises'
 import path from 'path'
@@ -9,19 +9,26 @@ const configFile = path.resolve('component.doc.json');
 
 /**
  * 默认配置
- * @type {{componentsDir: string, outDir: string, docName: string, docType: string}}
+ * @type {{componentsDir: string, outDir: string, docName: string, docType: string, customContent: {md: string, html: string}, docDescription: string}}
  */
 const config = {
     outDir: 'dist/component-doc',
     componentsDir: 'src/components',
     docName: 'Vue Component API Documentation',
-    docType: 'html' // 文档类型配置，默认html
+    docType: 'html', // 文档类型配置，默认html
+    // 新增文档描述配置
+    docDescription: '',
+    // 默认customContent设置为空字符串
+    customContent: {
+        md: '',
+        html: ''
+    }
 };
 
 /**
  * 加载配置文件：
- * 如果存在文件component-doc.json
- * 则从component-doc.json加载自定义配置，并覆盖掉默认配置
+ * 如果存在文件component.doc.json
+ * 则从component.doc.json加载自定义配置，并覆盖掉默认配置
  * 否则直接返回
  */
 function loadConfig() {
@@ -29,6 +36,14 @@ function loadConfig() {
         if (fs.existsSync(configFile)) {
             const customConfig = JSON.parse(fs.readFileSync(configFile, 'utf8'));
             Object.assign(config, customConfig);
+
+            // 合并自定义内容配置（避免完全覆盖默认配置）
+            if (customConfig.customContent) {
+                config.customContent = {
+                    ...config.customContent,
+                    ...customConfig.customContent
+                };
+            }
 
             // 验证docType配置，只允许html和md
             if (!['html', 'md'].includes(config.docType)) {
@@ -42,13 +57,37 @@ function loadConfig() {
 }
 
 /**
+ * 读取自定义内容文件
+ * @returns {Promise<string>} 自定义内容字符串，读取失败则返回空字符串
+ */
+async function readCustomContent() {
+    try {
+        // 根据文档类型获取对应的自定义内容文件路径
+        const contentPath = config.customContent[config.docType];
+        if (!contentPath) {
+            return '';
+        }
+
+        const fullPath = path.resolve(contentPath);
+        if (await fsPromises.access(fullPath).then(() => true).catch(() => false)) {
+            return await fsPromises.readFile(fullPath, 'utf8');
+        }
+        console.log(`自定义内容文件不存在: ${fullPath}`);
+        return '';
+    } catch (error) {
+        console.error('读取自定义内容失败:', error.message);
+        return '';
+    }
+}
+
+/**
  * 递归查找目录下所有vue文件
  * @param {string} dir 目录路径
  * @returns {Promise<string[]>} vue文件路径列表
  */
 async function findVueFiles(dir) {
     let results = [];
-    const entries = await fsPromises.readdir(dir, {withFileTypes: true});
+    const entries = await fsPromises.readdir(dir, { withFileTypes: true });
 
     for (const entry of entries) {
         const fullPath = path.resolve(dir, entry.name);
@@ -69,7 +108,7 @@ async function ensureDir(dir) {
     try {
         await fsPromises.access(dir);
     } catch {
-        await fsPromises.mkdir(dir, {recursive: true});
+        await fsPromises.mkdir(dir, { recursive: true });
     }
 }
 
@@ -409,6 +448,7 @@ function generateComponentHtml(docData, docName, componentName) {
 }
 
 (function () {
+    console.log('vue component api doc gen running...');
 
     // 立即执行函数改为异步执行
     (async () => {
@@ -464,9 +504,23 @@ function generateComponentHtml(docData, docName, componentName) {
             console.log(`已生成组件文档: ${outputFile}`);
         }
 
+        // 读取自定义内容
+        const customContent = await readCustomContent();
+
         if (config.docType === 'md') {
-            // 生成Markdown索引文件，包含组件描述
+            // 生成Markdown索引文件，包含组件描述和自定义内容
             let indexMdContent = `# ${config.docName}\n\n`;
+
+            // 添加文档描述（如果存在）
+            if (config.docDescription) {
+                indexMdContent += `${config.docDescription}\n\n`;
+            }
+
+            // 添加自定义内容（如果存在）
+            if (customContent) {
+                indexMdContent += `${customContent}\n\n`;
+            }
+
             indexMdContent += '## 组件列表\n\n';
 
             components.forEach(component => {
@@ -483,7 +537,7 @@ function generateComponentHtml(docData, docName, componentName) {
             await fsPromises.writeFile(indexMdPath, indexMdContent, 'utf8');
             console.log(`已生成索引文件: ${indexMdPath}`);
         } else {
-            // 生成HTML索引文件，包含所有组件的链接和描述
+            // 生成HTML索引文件，包含所有组件的链接、描述和自定义内容
             let componentsList = components.map(component => {
                 let item = `<li class="component-item">`;
                 item += `<a href="${component.name}.html" class="component-link">${component.name}</a>`;
@@ -494,6 +548,14 @@ function generateComponentHtml(docData, docName, componentName) {
                 item += `</li>`;
                 return item;
             }).join('\n');
+
+            // 文档描述部分（如果存在）
+            const docDescriptionSection = config.docDescription
+                ? `<p class="doc-description">${config.docDescription}</p>`
+                : '';
+
+            // 自定义内容直接插入，不添加外层div
+            const customContentSection = customContent ? customContent : '';
 
             const indexHtmlContent = `<!DOCTYPE html>
 <html lang="en">
@@ -510,10 +572,16 @@ function generateComponentHtml(docData, docName, componentName) {
         .component-link { color: #3498db; text-decoration: none; font-size: 1.2em; font-weight: bold; }
         .component-link:hover { text-decoration: underline; }
         .component-desc { margin: 8px 0 0 0; color: #555; line-height: 1.5; }
+        .doc-description { font-size: 1.1em; line-height: 1.6; color: #333; margin: 10px 0 20px 0; }
     </style>
 </head>
 <body>
     <h1>${config.docName}</h1>
+    
+    ${docDescriptionSection}
+    
+    ${customContentSection}
+    
     <h2>组件列表</h2>
     <ul class="components-list">
         ${componentsList}
