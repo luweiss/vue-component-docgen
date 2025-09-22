@@ -1,6 +1,6 @@
 {
   "name": "vue-component-docgen",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Toolbox to generate api documentation for vue components",
   "main": "index.js",
   "scripts": {
@@ -12,6 +12,11 @@
   ],
   "author": "luweiss",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/luweiss/vue-component-docgen.git"
+  },
+  "homepage": "https://github.com/luweiss/vue-component-docgen",
   "bin": {
     "component-doc": "./index.js"
   },
