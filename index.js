@@ -4,7 +4,9 @@ import { parse } from 'vue-docgen-api'
 import fs from 'fs'
 import fsPromises from 'fs/promises'
 import path from 'path'
+import { parseArgs } from 'util'; // 使用Node.js内置的util.parseArgs解析命令行参数
 
+// 配置文件名称为 "component.doc.json"
 const configFile = path.resolve('component.doc.json');
 
 /**
@@ -12,11 +14,13 @@ const configFile = path.resolve('component.doc.json');
  * @type {{componentsDir: string, outDir: string, docName: string, docType: string, customContent: {md: string, html: string}, docDescription: string}}
  */
 const config = {
-    outDir: 'dist/component-doc',
+    // 默认组件目录
     componentsDir: 'src/components',
+    // 默认输出路径
+    outDir: 'dist/component-doc',
     docName: 'Vue Component API Documentation',
     docType: 'html', // 文档类型配置，默认html
-    // 新增文档描述配置
+    // 文档描述配置
     docDescription: '',
     // 默认customContent设置为空字符串
     customContent: {
@@ -26,12 +30,47 @@ const config = {
 };
 
 /**
- * 加载配置文件：
- * 如果存在文件component.doc.json
- * 则从component.doc.json加载自定义配置，并覆盖掉默认配置
- * 否则直接返回
+ * 解析命令行参数
+ * @returns {Object} 解析后的命令行参数
+ */
+function parseCommandLineArgs() {
+    const options = {
+        docType: {
+            type: 'string',
+            short: 't'
+        },
+        docName: {
+            type: 'string',
+            short: 'n'
+        },
+        docDescription: {
+            type: 'string',
+            short: 'd'
+        },
+        outDir: {
+            type: 'string',
+            short: 'o'
+        },
+        componentsDir: {
+            type: 'string',
+            short: 'c'
+        }
+    };
+
+    try {
+        const { values } = parseArgs({ options });
+        return values;
+    } catch (err) {
+        console.error(`解析命令行参数错误: ${err.message}`);
+        return {};
+    }
+}
+
+/**
+ * 加载配置文件并合并命令行参数
  */
 function loadConfig() {
+    // 1. 先加载配置文件
     try {
         if (fs.existsSync(configFile)) {
             const customConfig = JSON.parse(fs.readFileSync(configFile, 'utf8'));
@@ -44,15 +83,24 @@ function loadConfig() {
                     ...customConfig.customContent
                 };
             }
-
-            // 验证docType配置，只允许html和md
-            if (!['html', 'md'].includes(config.docType)) {
-                console.warn(`无效的docType配置: ${config.docType}，将使用默认值html`);
-                config.docType = 'html';
-            }
         }
     } catch (error) {
         console.error('加载配置文件失败:', error.message);
+    }
+
+    // 2. 解析命令行参数并覆盖配置
+    const cliArgs = parseCommandLineArgs();
+    if (Object.keys(cliArgs).length > 0) {
+        console.log('使用命令行参数覆盖配置:', cliArgs);
+
+        // 覆盖配置，命令行参数优先级最高
+        Object.assign(config, cliArgs);
+    }
+
+    // 验证docType配置，只允许html和md
+    if (!['html', 'md'].includes(config.docType)) {
+        console.warn(`无效的docType配置: ${config.docType}，将使用默认值html`);
+        config.docType = 'html';
     }
 }
 
@@ -452,9 +500,9 @@ function generateComponentHtml(docData, docName, componentName) {
 
     // 立即执行函数改为异步执行
     (async () => {
-        // 1.加载配置文件到config
+        // 1.加载配置文件并合并命令行参数
         loadConfig();
-        console.log('使用配置:', config);
+        console.log('最终使用的配置:', config);
 
         // 确保输出目录存在
         await ensureDir(config.outDir);
@@ -462,10 +510,19 @@ function generateComponentHtml(docData, docName, componentName) {
         // 2.递归查找componentsDir所有vue文件
         const componentsDir = path.resolve(config.componentsDir);
         console.log(`开始查找${componentsDir}下的vue文件...`);
+
+        // 检查组件目录是否存在
+        try {
+            await fsPromises.access(componentsDir);
+        } catch {
+            console.error(`组件目录不存在: ${componentsDir}`);
+            return;
+        }
+
         const vueFiles = await findVueFiles(componentsDir);
 
         if (vueFiles.length === 0) {
-            console.log('未找到任何vue组件文件');
+            console.log(`在${componentsDir}中未找到任何vue组件文件`);
             return;
         }
         console.log(`找到${vueFiles.length}个vue组件文件`);

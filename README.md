@@ -10,7 +10,7 @@ npm install vue-component-docgen -D
 ## 必要设置
 在package.json的script选项中添加
 ```
-"build:component-doc": "component-doc"
+"build:component-doc": "component-doc --docName '我的文档' "
 ```
 添加完成应该如下格式
 ```
@@ -18,7 +18,7 @@ npm install vue-component-docgen -D
   ... 其他配置
   "scripts": {
     ...
-    "build:component-doc": "component-doc",
+    "build:component-doc": "component-doc --docName '我的文档' ",
     ...
   }
 }
@@ -58,4 +58,13 @@ componentsDir: 组件目录
 outDir: 文档输出目录
 customContent.html: 存放自定义内容的文件(docType: 'html')，自定义内容将插入到docName下方
 customContent.md: 存放自定义内容的文件(docType: 'md')，自定义内容将插入到docName下方
+```
+
+npm script 参数对应的配置
+```
+--docType           -> docType
+--docName           -> docName
+--docDescription    -> docDescription
+--componentsDir     -> componentsDir
+--outDir            -> outDir
 ```
